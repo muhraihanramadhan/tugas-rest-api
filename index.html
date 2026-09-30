@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Agenda Tugas</title>
+  <style>
+    :root {
+      --ink: #12202f; --latar: #edf1f5; --teks: #16212e; --redup: #5b6878; --garis: #d5dce5;
+      --aksen: #0b7285; --aksen-gelap: #095c6b;
+      --selesai: #15803d; --ditunda: #b45309; --terlambat: #b91c1c;
+    }
+    * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+    body { margin: 0; font-family: "Segoe UI", system-ui, sans-serif; background: var(--latar); color: var(--teks); }
+
+    header { background: var(--ink); color: #fff; }
+    .bar { max-width: 760px; margin: 0 auto; padding: 12px 16px; display: flex; flex-wrap: wrap; align-items: center; gap: 12px 24px; }
+    .brand { font-size: 1.2rem; font-weight: 700; }
+    nav { display: flex; gap: 4px; flex: 1; }
+    nav button { background: transparent; color: #b8c4d2; padding: 8px 14px; border-radius: 6px; font-size: 0.95rem; }
+    nav button:hover { background: rgba(255,255,255,.08); }
+    nav button[aria-current="page"] { background: var(--aksen); color: #fff; }
+    .jam { text-align: right; font-size: 0.8rem; color: #b8c4d2; line-height: 1.3; }
+    .jam strong { display: block; font-size: 1.15rem; color: #fff; font-variant-numeric: tabular-nums; }
+    @media (max-width: 560px) { .jam { width: 100%; text-align: left; } }
+
+    main { max-width: 760px; margin: 0 auto; padding: 20px 16px 40px; }
+    h1 { font-size: 1.35rem; margin: 0 0 14px; }
+    button { border: none; border-radius: 6px; padding: 8px 14px; font: inherit; font-size: 0.9rem; cursor: pointer; background: var(--aksen); color: #fff; }
+    button:hover { background: var(--aksen-gelap); }
+    button.sekunder { background: #e2e8f0; color: var(--teks); }
+    button.sekunder:hover { background: #cfd8e3; }
+    button.bahaya { background: #fff; color: var(--terlambat); border: 1px solid #e5b4b4; }
+    button.bahaya:hover { background: #fdeeee; }
+    button:focus-visible, input:focus-visible { outline: 3px solid #f0b429; outline-offset: 2px; }
+
+    form.tambah { display: flex; flex-wrap: wrap; gap: 10px; align-items: end; background: #fff; padding: 14px; border-radius: 8px; border: 1px solid var(--garis); }
+    .field { display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem; color: var(--redup); }
+    .field.lebar { flex: 1 1 220px; }
+    input { padding: 9px 10px; border: 1px solid #b9c3d1; border-radius: 6px; font: inherit; color: var(--teks); }
+
+    #pesan { min-height: 24px; margin: 12px 0; font-size: 0.95rem; }
+    #pesan.error { color: var(--terlambat); }
+    #pesan.sukses { color: var(--selesai); }
+
+    ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
+    li.kartu { background: #fff; border: 1px solid var(--garis); border-left: 5px solid var(--aksen); border-radius: 8px; padding: 12px 14px; }
+    li.kartu.terlambat { border-left-color: var(--terlambat); }
+    li.kartu.selesai { border-left-color: var(--selesai); }
+    li.kartu.ditunda { border-left-color: var(--ditunda); }
+    .judul { margin: 0 0 4px; font-weight: 600; word-break: break-word; }
+    .info { margin: 0; font-size: 0.88rem; color: var(--redup); }
+    .info.merah { color: var(--terlambat); font-weight: 600; }
+    .aksi { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+    .kosong { color: var(--redup); padding: 16px 0; }
+
+    .filter { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+    .filter button { background: #fff; color: var(--teks); border: 1px solid var(--garis); }
+    .filter button[aria-pressed="true"] { background: var(--ink); color: #fff; border-color: var(--ink); }
+    .baris { display: flex; justify-content: space-between; gap: 8px; margin-bottom: 4px; font-size: 0.85rem; }
+    .lencana { font-weight: 700; }
+    .selesai .lencana { color: var(--selesai); }
+    .ditunda .lencana { color: var(--ditunda); }
+    .terlambat .lencana { color: var(--terlambat); }
+
+    dialog { border: none; border-radius: 10px; padding: 20px; width: min(420px, 92vw); }
+    dialog::backdrop { background: rgba(18, 32, 47, .5); }
+    dialog h2 { margin: 0 0 6px; font-size: 1.1rem; }
+    dialog .field { margin: 12px 0; }
+    #tunda-error { color: var(--terlambat); font-size: 0.9rem; min-height: 20px; margin: 0; }
+    dialog .aksi { justify-content: flex-end; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="bar">
+      <div class="brand">Agenda Tugas</div>
+      <nav aria-label="Navigasi utama">
+        <button type="button" data-view="tugas" aria-current="page">Tugas</button>
+        <button type="button" data-view="riwayat">Riwayat</button>
+      </nav>
+      <div class="jam"><span id="tanggal"></span><strong id="waktu"></strong></div>
+    </div>
+  </header>
+
+  <main>
+    <div id="pesan" role="status"></div>
+
+    <section id="view-tugas">
+      <h1>Tugas aktif</h1>
+      <form class="tambah" id="form-tambah">
+        <label class="field lebar">Judul tugas
+          <input type="text" id="input-judul" placeholder="Contoh: Kumpulkan laporan" />
+        </label>
+        <label class="field">Batas waktu
+          <input type="datetime-local" id="input-deadline" />
+        </label>
+        <button type="submit">Tambah tugas</button>
+      </form>
+      <ul id="daftar-tugas" style="margin-top:14px"></ul>
+    </section>
+
+    <section id="view-riwayat" hidden>
+      <h1>Riwayat tugas</h1>
+      <div class="filter" id="filter"></div>
+      <ul id="daftar-riwayat"></ul>
+    </section>
+  </main>
+
+  <dialog id="dialog-tunda">
+    <form id="form-tunda">
+      <h2>Tunda tugas</h2>
+      <p id="tunda-judul" class="info"></p>
+      <label class="field">Batas waktu baru
+        <input type="datetime-local" id="tunda-waktu" />
+      </label>
+      <p id="tunda-error" role="alert"></p>
+      <div class="aksi">
+        <button type="button" class="sekunder" id="tunda-batal">Batal</button>
+        <button type="submit">Simpan penundaan</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="script.js"></script>
+</body>
+</html>
